@@ -15,7 +15,7 @@ func ContainsHttpPrefix(message string, index int) bool {
 		message[index+6] == httpPrefix[6]
 }
 
-func replaceAllLinks(message string) string {
+func ReplaceAllLinks(message string) string {
 	answer := make([]byte, 0, len(message))
 	insideLink := false
 	index := 0
@@ -49,6 +49,6 @@ func replaceAllLinks(message string) string {
 
 func main() {
 	myMessage := "http://yandex.com htt://wrong-link.com http://hereweare.com  here is my string http://google.com"
-	result := replaceAllLinks(myMessage)
+	result := ReplaceAllLinks(myMessage)
 	println(result)
 }
