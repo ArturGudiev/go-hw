@@ -1,21 +1,7 @@
 package main
 
-const httpPrefix = "http://"
-
-func ContainsHttpPrefix(message string, index int) bool {
-	if index+len(httpPrefix) >= len(message) {
-		return false
-	}
-	return message[index] == httpPrefix[0] &&
-		message[index+1] == httpPrefix[1] &&
-		message[index+2] == httpPrefix[2] &&
-		message[index+3] == httpPrefix[3] &&
-		message[index+4] == httpPrefix[4] &&
-		message[index+5] == httpPrefix[5] &&
-		message[index+6] == httpPrefix[6]
-}
-
 func ReplaceAllLinks(message string) string {
+	const httpPrefix = "http://"
 	answer := make([]byte, 0, len(message))
 	insideLink := false
 	index := 0
@@ -34,7 +20,15 @@ func ReplaceAllLinks(message string) string {
 			continue
 		}
 
-		if ContainsHttpPrefix(message, index) {
+		containsPrefix := true
+		for i := range httpPrefix {
+			if index+i >= len(message) || message[index+i] != httpPrefix[i] {
+				containsPrefix = false
+				break
+			}
+		}
+
+		if containsPrefix {
 			insideLink = true
 			answer = append(answer, httpPrefix...)
 			index += 6
