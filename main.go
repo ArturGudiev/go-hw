@@ -31,7 +31,7 @@ func ReplaceAllLinks(message string) string {
 		if containsPrefix {
 			insideLink = true
 			answer = append(answer, httpPrefix...)
-			index += 6
+			index += len(httpPrefix)
 			continue
 		}
 
@@ -42,7 +42,7 @@ func ReplaceAllLinks(message string) string {
 }
 
 func main() {
-	myMessage := "http://yandex.com htt://wrong-link.com http://hereweare.com  here is my string http://google.com"
+	myMessage := "http://yandex.com htt://wrong-link.com http://hereweare.com  here is my string http://google.com http://123"
 	result := ReplaceAllLinks(myMessage)
 	println(result)
 }
