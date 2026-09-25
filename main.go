@@ -1,48 +1,27 @@
 package main
 
-func ReplaceAllLinks(message string) string {
-	const httpPrefix = "http://"
-	answer := make([]byte, 0, len(message))
-	insideLink := false
-	index := 0
+import (
+	"flag"
+	"fmt"
 
-	for index < len(message) {
-		symbol := message[index]
-		if insideLink {
-			switch symbol {
-			case ' ', '\t':
-				insideLink = false
-				answer = append(answer, symbol)
-			default:
-				answer = append(answer, '*')
-			}
-			index++
-			continue
-		}
+	"github.com/arturgudiev/go-hw/service"
+)
 
-		containsPrefix := true
-		for i := range httpPrefix {
-			if index+i >= len(message) || message[index+i] != httpPrefix[i] {
-				containsPrefix = false
-				break
-			}
-		}
-
-		if containsPrefix {
-			insideLink = true
-			answer = append(answer, httpPrefix...)
-			index += len(httpPrefix)
-			continue
-		}
-
-		answer = append(answer, symbol)
-		index++
-	}
-	return string(answer)
-}
 
 func main() {
-	myMessage := "http://yandex.com htt://wrong-link.com http://hereweare.com  here is my string http://google.com http://123"
-	result := ReplaceAllLinks(myMessage)
-	println(result)
+	flag.Parse()
+	inputFilePath := flag.Arg(0)
+	outputFilePath := "output.txt"
+	if flag.NArg() >= 2 {
+		outputFilePath = flag.Arg(1)
+	}
+	
+
+	fmt.Println(inputFilePath)
+	fmt.Println(outputFilePath)
+
+	prod := service.NewProducerImpl(inputFilePath)
+	pres := service.NewPresenterImpl(outputFilePath)
+	service := service.NewService(prod, pres)
+	service.Run()
 }
