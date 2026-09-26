@@ -15,10 +15,6 @@ func main() {
 	if flag.NArg() >= 2 {
 		outputFilePath = flag.Arg(1)
 	}
-	
-
-	fmt.Println(inputFilePath)
-	fmt.Println(outputFilePath)
 
 	prod := service.NewProducerImpl(inputFilePath)
 	pres := service.NewPresenterImpl(outputFilePath)

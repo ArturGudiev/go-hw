@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"strings"
 )
@@ -60,20 +61,20 @@ func (s *Service) ReplaceAllLinks(message string) string {
 	return string(answer)
 }
 
-func (s *Service) Run() {
-	println("Run")
+func (s *Service) Run() error {
 	lines, err := s.prod.Produce()
 	if err != nil {
-		return
+		return err
 	}
 	modifiedLines := make([]string, len(lines))
 	for index, line := range lines {
-		modifiedLines[index] = s.ReplaceAllLinks(line);
+		modifiedLines[index] = s.ReplaceAllLinks(line)
 	}
-	err = s.pres.Present(modifiedLines);
+	err = s.pres.Present(modifiedLines)
 	if err != nil {
-		return
+		return err
 	}
+	return nil
 }
 
 func NewService(prod Producer, pres Presenter) *Service {
@@ -90,7 +91,7 @@ type ProducerImpl struct {
 func (p ProducerImpl) Produce() ([]string, error) {
 	data, err := os.ReadFile(p.Filename)
 	if err != nil {
-		return []string{}, err
+		return []string{}, fmt.Errorf("Failed to read file")
 	}
 	lines := strings.Split(string(data), "\n")
 	return lines, nil
@@ -100,12 +101,12 @@ func NewProducerImpl(filename string) *ProducerImpl {
 	return &ProducerImpl{Filename: filename}
 }
 
-type PresenterImpl struct{
+type PresenterImpl struct {
 	Filename string
 }
 
 func (p PresenterImpl) Present(lines []string) error {
-	
+
 	file, err := os.Create("output.txt")
 	if err != nil {
 		return err
