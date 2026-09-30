@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 
 	"github.com/arturgudiev/go-hw/service"
+	"github.com/arturgudiev/go-hw/producer"
+	"github.com/arturgudiev/go-hw/presenter"
 )
 
 
@@ -16,8 +17,8 @@ func main() {
 		outputFilePath = flag.Arg(1)
 	}
 
-	prod := service.NewProducerImpl(inputFilePath)
-	pres := service.NewPresenterImpl(outputFilePath)
+	prod := producer.NewProducer(inputFilePath)
+	pres := presenter.NewPresenter(outputFilePath)
 	service := service.NewService(prod, pres)
 	service.Run()
 }

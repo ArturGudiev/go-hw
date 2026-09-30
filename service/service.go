@@ -1,12 +1,5 @@
 package service
 
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"strings"
-)
-
 type Producer interface {
 	Produce() ([]string, error)
 }
@@ -18,6 +11,13 @@ type Presenter interface {
 type Service struct {
 	prod Producer
 	pres Presenter
+}
+
+func NewService(prod Producer, pres Presenter) *Service {
+	return &Service{
+		prod: prod,
+		pres: pres,
+	}
 }
 
 func (s *Service) ReplaceAllLinks(message string) string {
@@ -77,58 +77,3 @@ func (s *Service) Run() error {
 	return nil
 }
 
-func NewService(prod Producer, pres Presenter) *Service {
-	return &Service{
-		prod: prod,
-		pres: pres,
-	}
-}
-
-type ProducerImpl struct {
-	Filename string
-}
-
-func (p ProducerImpl) Produce() ([]string, error) {
-	data, err := os.ReadFile(p.Filename)
-	if err != nil {
-		return []string{}, fmt.Errorf("Failed to read file")
-	}
-	lines := strings.Split(string(data), "\n")
-	return lines, nil
-}
-
-func NewProducerImpl(filename string) *ProducerImpl {
-	return &ProducerImpl{Filename: filename}
-}
-
-type PresenterImpl struct {
-	Filename string
-}
-
-func (p PresenterImpl) Present(lines []string) error {
-
-	file, err := os.Create("output.txt")
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	writer := bufio.NewWriter(file)
-
-	for _, line := range lines {
-		_, err := writer.WriteString(line + "\n")
-		if err != nil {
-			return err
-		}
-	}
-
-	err = writer.Flush()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func NewPresenterImpl(filename string) *PresenterImpl {
-	return &PresenterImpl{Filename: filename}
-}

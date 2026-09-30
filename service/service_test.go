@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	
 )
 
 type MockProducer struct {
@@ -106,29 +108,4 @@ func TestService_PresentReturnsError(t *testing.T) {
 	a.Error(svc.Run())
 }
 
-func TestProducerImpl_ProducerReturnsLines(t *testing.T) {
-	prod := NewProducerImpl("testdata/input.txt")
 
-	lines, err := prod.Produce()
-
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"111", "222", "http://google.com"}, lines)
-}
-
-func TestProducerImpl_ProduceFileError(t *testing.T) {
-	prod := NewProducerImpl("unexisting-file.txt")
-
-	lines, err := prod.Produce()
-
-	assert.Error(t, err)
-	assert.Empty(t, lines)
-}
-
-func TestPresenterImpl_PresentSucceess(t *testing.T) {
-	prod := NewProducerImpl("testdata/input.txt")
-	lines, _ := prod.Produce()
-	pres := NewPresenterImpl("testdata/output.txt")
-
-	err := pres.Present(lines)
-	assert.NoError(t, err)
-}
