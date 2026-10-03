@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	
+	"github.com/arturgudiev/go-hw/service/mocks"
 )
 
 type MockProducer struct {
@@ -30,8 +30,8 @@ func (m *MockPresenter) Present(lines []string) error {
 }
 
 func TestService_Run(t *testing.T) {
-	prod := new(MockProducer)
-	pres := new(MockPresenter)
+	prod := mocks.NewProducer(t)
+	pres := mocks.NewPresenter(t)
 
 	input := []string{"hello http://yandex.com"}
 	expected := []string{"hello http://**********"}
@@ -41,15 +41,13 @@ func TestService_Run(t *testing.T) {
 
 	svc := NewService(prod, pres)
 	svc.Run()
-
-	prod.AssertExpectations(t)
-	pres.AssertExpectations(t)
 
 }
 
 func TestService_Produce(t *testing.T) {
-	prod := new(MockProducer)
-	pres := new(MockPresenter)
+	prod := mocks.NewProducer(t)
+	pres := mocks.NewPresenter(t)
+
 
 	input := []string{"hello http://yandex.com"}
 	expected := []string{"hello http://**********"}
@@ -60,8 +58,6 @@ func TestService_Produce(t *testing.T) {
 	svc := NewService(prod, pres)
 	svc.Run()
 
-	prod.AssertExpectations(t)
-	pres.AssertExpectations(t)
 }
 
 func TestService_ReplaceAllLinks(t *testing.T) {
@@ -83,8 +79,8 @@ func TestService_ReplaceAllLinks(t *testing.T) {
 
 func TestService_ProduceReturnsError(t *testing.T) {
 	a := assert.New(t)
-	prod := new(MockProducer)
-	pres := new(MockPresenter)
+	prod := mocks.NewProducer(t)
+	pres := mocks.NewPresenter(t)
 
 	prod.On("Produce").Return(nil, errors.New("Producer error"))
 
@@ -95,8 +91,8 @@ func TestService_ProduceReturnsError(t *testing.T) {
 
 func TestService_PresentReturnsError(t *testing.T) {
 	a := assert.New(t)
-	prod := new(MockProducer)
-	pres := new(MockPresenter)
+	prod := mocks.NewProducer(t)
+	pres := mocks.NewPresenter(t)
 
 	input := []string{"hello http://yandex.com"}
 	expected := []string{"hello http://**********"}

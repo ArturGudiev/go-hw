@@ -1,9 +1,11 @@
 package service
 
+//go:generate mockery --name=Producer --output=mocks --outpkg=mocks --with-expecter
 type Producer interface {
 	Produce() ([]string, error)
 }
 
+//go:generate mockery --name=Presenter --output=mocks --outpkg=mocks --with-expecter
 type Presenter interface {
 	Present([]string) error
 }
