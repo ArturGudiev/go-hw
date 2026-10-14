@@ -1,5 +1,7 @@
 package service
 
+import "sync"
+
 //go:generate mockery --name=Producer --output=mocks --outpkg=mocks --with-expecter
 type Producer interface {
 	Produce() ([]string, error)
@@ -13,6 +15,11 @@ type Presenter interface {
 type Service struct {
 	prod Producer
 	pres Presenter
+}
+
+type ReplaceLinksChanRequest struct {
+	index int
+	line  string
 }
 
 func NewService(prod Producer, pres Presenter) *Service {
@@ -68,14 +75,32 @@ func (s *Service) Run() error {
 	if err != nil {
 		return err
 	}
+
+	var wg sync.WaitGroup
 	modifiedLines := make([]string, len(lines))
-	for index, line := range lines {
-		modifiedLines[index] = s.ReplaceAllLinks(line)
+
+	replaceLinksWorker := func(wg *sync.WaitGroup, tasks <-chan ReplaceLinksChanRequest) {
+		for task := range tasks {
+			modifiedLines[task.index] = s.ReplaceAllLinks(task.line)
+		}
+		wg.Done()
 	}
+
+	tasks := make(chan ReplaceLinksChanRequest)
+	for range 10 {
+		wg.Add(1)
+		go replaceLinksWorker(&wg, tasks)
+	}
+
+	for index, line := range lines {
+		tasks <- ReplaceLinksChanRequest{index: index, line: line}
+	}
+	close(tasks)
+	wg.Wait()
+
 	err = s.pres.Present(modifiedLines)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
