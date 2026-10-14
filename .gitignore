@@ -1,0 +1,12 @@
+# binaries
+/go-hw
+*.exe
+# test / coverage
+cover.out
+*.out
+# app output
+output.txt
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
