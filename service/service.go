@@ -17,7 +17,7 @@ type Service struct {
 	pres Presenter
 }
 
-type ReplaceLinksChanRequest struct {
+type ReplaceLinksChanData struct {
 	index int
 	line  string
 }
@@ -77,26 +77,44 @@ func (s *Service) Run() error {
 	}
 
 	var wg sync.WaitGroup
+	var readerWG sync.WaitGroup
 	modifiedLines := make([]string, len(lines))
 
-	replaceLinksWorker := func(wg *sync.WaitGroup, tasks <-chan ReplaceLinksChanRequest) {
+	tasks := make(chan ReplaceLinksChanData)
+	outputChannel := make(chan ReplaceLinksChanData)
+
+	replaceLinksWorker := func(wg *sync.WaitGroup, tasks <-chan ReplaceLinksChanData) {
 		for task := range tasks {
-			modifiedLines[task.index] = s.ReplaceAllLinks(task.line)
+			outputChannel <- ReplaceLinksChanData{
+				index: task.index,
+				line: s.ReplaceAllLinks(task.line),
+			}
 		}
 		wg.Done()
 	}
 
-	tasks := make(chan ReplaceLinksChanRequest)
 	for range 10 {
 		wg.Add(1)
 		go replaceLinksWorker(&wg, tasks)
 	}
 
+	readerWG.Add(1)
+	go func() {
+		defer readerWG.Done()
+		for taskResult := range outputChannel {
+			modifiedLines[taskResult.index] = taskResult.line
+		}
+	}()
+
 	for index, line := range lines {
-		tasks <- ReplaceLinksChanRequest{index: index, line: line}
+		tasks <- ReplaceLinksChanData{index: index, line: line}
 	}
 	close(tasks)
+
 	wg.Wait()
+	close(outputChannel)
+	readerWG.Wait()
+
 
 	err = s.pres.Present(modifiedLines)
 	if err != nil {
