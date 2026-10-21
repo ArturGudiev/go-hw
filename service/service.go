@@ -1,5 +1,7 @@
 package service
 
+import "sync"
+
 //go:generate mockery --name=Producer --output=mocks --outpkg=mocks --with-expecter
 type Producer interface {
 	Produce() ([]string, error)
@@ -13,6 +15,11 @@ type Presenter interface {
 type Service struct {
 	prod Producer
 	pres Presenter
+}
+
+type ReplaceLinksChanData struct {
+	index int
+	line  string
 }
 
 func NewService(prod Producer, pres Presenter) *Service {
@@ -68,14 +75,52 @@ func (s *Service) Run() error {
 	if err != nil {
 		return err
 	}
+
 	modifiedLines := make([]string, len(lines))
-	for index, line := range lines {
-		modifiedLines[index] = s.ReplaceAllLinks(line)
-	}
+	maxWorkers := min(len(lines), 10)
+
+	tasksChan := make(chan ReplaceLinksChanData, maxWorkers)
+	resultsChan := make(chan ReplaceLinksChanData, maxWorkers)
+	sem := make(chan struct{}, maxWorkers)
+	wg := &sync.WaitGroup{}
+	readerWg := &sync.WaitGroup{}
+
+	go func() {
+		for i, line := range lines {
+			tasksChan <- ReplaceLinksChanData{index: i, line: line}
+		}
+		close(tasksChan)
+	}()
+
+	go func () {
+		for task := range tasksChan {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func() {
+				defer wg.Done()
+				defer func() {<- sem}()
+				resultsChan <- ReplaceLinksChanData{
+					index: task.index,
+					line: s.ReplaceAllLinks(task.line),
+				}	
+			}()
+		}
+		wg.Wait()
+		close(resultsChan)
+	}()
+
+	readerWg.Add(1)
+	go func() {
+		defer readerWg.Done()
+		for taskResult := range resultsChan {
+			modifiedLines[taskResult.index] = taskResult.line
+		}	
+	}()
+	readerWg.Wait()
+
 	err = s.pres.Present(modifiedLines)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
