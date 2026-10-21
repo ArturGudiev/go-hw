@@ -76,45 +76,47 @@ func (s *Service) Run() error {
 		return err
 	}
 
-	var wg sync.WaitGroup
-	var readerWG sync.WaitGroup
 	modifiedLines := make([]string, len(lines))
+	maxWorkers := min(len(lines), 10)
 
-	tasks := make(chan ReplaceLinksChanData)
-	outputChannel := make(chan ReplaceLinksChanData)
+	tasksChan := make(chan ReplaceLinksChanData, maxWorkers)
+	resultsChan := make(chan ReplaceLinksChanData, maxWorkers)
+	sem := make(chan struct{}, maxWorkers)
+	wg := &sync.WaitGroup{}
+	readerWg := &sync.WaitGroup{}
 
-	replaceLinksWorker := func(wg *sync.WaitGroup, tasks <-chan ReplaceLinksChanData) {
-		for task := range tasks {
-			outputChannel <- ReplaceLinksChanData{
-				index: task.index,
-				line: s.ReplaceAllLinks(task.line),
-			}
-		}
-		wg.Done()
-	}
-
-	for range 10 {
-		wg.Add(1)
-		go replaceLinksWorker(&wg, tasks)
-	}
-
-	readerWG.Add(1)
 	go func() {
-		defer readerWG.Done()
-		for taskResult := range outputChannel {
-			modifiedLines[taskResult.index] = taskResult.line
+		for i, line := range lines {
+			tasksChan <- ReplaceLinksChanData{index: i, line: line}
 		}
+		close(tasksChan)
 	}()
 
-	for index, line := range lines {
-		tasks <- ReplaceLinksChanData{index: index, line: line}
-	}
-	close(tasks)
+	go func () {
+		for task := range tasksChan {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func() {
+				defer wg.Done()
+				defer func() {<- sem}()
+				resultsChan <- ReplaceLinksChanData{
+					index: task.index,
+					line: s.ReplaceAllLinks(task.line),
+				}	
+			}()
+		}
+		wg.Wait()
+		close(resultsChan)
+	}()
 
-	wg.Wait()
-	close(outputChannel)
-	readerWG.Wait()
-
+	readerWg.Add(1)
+	go func() {
+		defer readerWg.Done()
+		for taskResult := range resultsChan {
+			modifiedLines[taskResult.index] = taskResult.line
+		}	
+	}()
+	readerWg.Wait()
 
 	err = s.pres.Present(modifiedLines)
 	if err != nil {
